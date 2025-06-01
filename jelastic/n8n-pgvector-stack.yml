@@ -1,0 +1,70 @@
+# Deploy n8n with PostgreSQL and Nginx on Jelastic
+# Author: YoanDev - https://yoandev.co
+# Date: 2025-05-08
+
+type: install
+
+name: n8n Stack
+id: n8n-stack
+
+description: Deploy n8n with PostgreSQL and Nginx on Jelastic
+
+categories:
+  - application
+  - automation
+  - integration
+
+ssl: true
+
+settings:
+  fields:
+  - type: string
+    name: DOMAIN
+    caption: Domain name (without https://)
+  - type: string
+    name: URL
+    caption: URL of the n8n instance (with https://)
+
+globals:
+  DB_PASS: "${fn.password(10)}"
+
+nodes:
+  - nodeType: nginx
+    nodeGroup: bl
+    count: 1
+    cloudlets: 8
+    fixedCloudlets: 1
+    displayName: LoadBalancer
+
+  - nodeType: postgres15
+    count: 1
+    cloudlets: 8
+    fixedCloudlets: 1
+    nodeGroup: sqldb
+    displayName: postgresql
+    isSLBAccessEnabled: false
+    password: ${globals.DB_PASS}
+    volumes:
+      - /var/lib/postgresql/data
+
+  - image: n8nio/n8n:latest
+    cloudlets: 12
+    fixedCloudlets: 2
+    isSLBAccessEnabled: false
+    nodeGroup: cp
+    volumes:
+        - /home/
+    env:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: sqldb
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: postgres
+      DB_POSTGRESDB_USER: webadmin
+      DB_POSTGRESDB_PASSWORD: ${globals.DB_PASS}
+      DOCKER_EXPOSED_PORT: "5678"
+      WEBHOOK_URL: https://${settings.DOMAIN}
+      N8N_HOST: ${settings.DOMAIN}
+      N8N_EDITOR_BASE_URL: https://${settings.DOMAIN}
+      N8N_PROTOCOL: https
+      N8N_RUNNERS_ENABLED: true
+      N8N_PROXY_HOPS: 1
