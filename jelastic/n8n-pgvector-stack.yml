@@ -1,11 +1,9 @@
 # Deploy n8n with PostgreSQL and Nginx on Jelastic
-# Author: YoanDev - https://yoandev.co
-# Date: 2025-05-08
 
 type: install
 
-name: n8n Stack
-id: n8n-stack
+name: n8n Stack with API key settings
+id: n8n-stack-v2
 
 description: Deploy n8n with PostgreSQL and Nginx on Jelastic
 
@@ -22,8 +20,21 @@ settings:
     name: DOMAIN
     caption: Domain name (without https://)
   - type: string
-    name: URL
-    caption: URL of the n8n instance (with https://)
+    name: LANGSMITH_API_KEY
+    caption: API Key - Langsmith
+  - type: string
+    name: OPENAI_API_KEY
+    caption: API Key - OpenAI
+  - type: string
+    name: TAVILY_API_KEY
+    caption: API Key - Tavily
+  - type: string
+    name: MISTRAL_API_KEY
+    caption: API Key - Mistral
+  - type: string
+    name: SERPAPI_API_KEY
+    caption: API Key - SerpAPI
+
 
 globals:
   DB_PASS: "${fn.password(10)}"
@@ -32,13 +43,13 @@ nodes:
   - nodeType: nginx
     nodeGroup: bl
     count: 1
-    cloudlets: 8
+    cloudlets: 2
     fixedCloudlets: 1
     displayName: LoadBalancer
 
   - nodeType: postgres15
     count: 1
-    cloudlets: 8
+    cloudlets: 4
     fixedCloudlets: 1
     nodeGroup: sqldb
     displayName: postgresql
@@ -48,12 +59,12 @@ nodes:
       - /var/lib/postgresql/data
 
   - image: n8nio/n8n:latest
-    cloudlets: 12
+    cloudlets: 8
     fixedCloudlets: 2
     isSLBAccessEnabled: false
     nodeGroup: cp
     volumes:
-        - /home/
+        - /home/node/.n8n
     env:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: sqldb
@@ -68,3 +79,9 @@ nodes:
       N8N_PROTOCOL: https
       N8N_RUNNERS_ENABLED: true
       N8N_PROXY_HOPS: 1
+      LANGSMITH_API_KEY: ${settings.LANGSMITH_API_KEY}
+      LANGSMITH_TRACING: true
+      OPENAI_API_KEY: ${settings.OPENAI_API_KEY}
+      TAVILY_API_KEY: ${settings.TAVILY_API_KEY}
+      MISTRAL_API_KEY: ${settings.MISTRAL_API_KEY}
+      SERPAPI_API_KEY: ${settings.SERPAPI_API_KEY}
